@@ -588,12 +588,10 @@ There are many sources of data on how countries generate their electricity and t
 
 ## 1. A stacked area chart that shows how your own country generated its electricity since 2000.
 
-
 ## 2. A scatter plot that looks at how CO2 per capita and GDP per capita are related
 
 ## 3. A scatter plot that looks at how electricity usage (kWh) per capita/day GDP per capita are related
 
-We will get energy data from the Our World in Data website, and CO2 and GDP per capita emissions from the World Bank, using the `wbstats`package.
 
 ```{r}
 #| message: false
