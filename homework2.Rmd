@@ -668,7 +668,7 @@ energy_share <- energy %>%
   filter(iso_code == iso) %>% #reads input and filters for specified country
   
   #calculating production mix 
-  mutate(biofuels= biofuel/electricity_generation, 
+  mutate(Biofuel= biofuel/electricity_generation, 
          Coal = coal/electricity_generation, 
          Gas = gas/electricity_generation, 
          Hydro = hydro/electricity_generation, 
@@ -678,6 +678,7 @@ energy_share <- energy %>%
          Solar = solar/electricity_generation, 
          Wind = wind/electricity_generation ) %>% 
   
+  #long tidy format
   pivot_longer(Biofuel:Wind,names_to = "electricity_type", values_to = "share") #merging production mix values into one column for plotting
 
 
