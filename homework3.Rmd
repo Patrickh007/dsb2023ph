@@ -119,11 +119,29 @@ As we can see in the table, Theresa May received the highest amount of donations
 Is there any `entity` whose donations account for more than 5% of the total payments given to MPs over the 2020-2022 interval? Who are they and who did they give money to?
 
 ```{r}
-entity_donations <- member_payments_db %>% group_by(entity) %>% summarise(total_donations = sum(value)) %>% mutate(overall_total = sum(total_donations)) %>% mutate(share = total_donations/overall_total) %>% arrange(desc(share))
+
+#determining entities with 5% or higher
+entity_donations <- member_payments_db %>% 
+  
+  group_by(entity) %>% 
+  
+  summarise(total_donations = sum(value)) %>% 
+  
+  mutate(overall_total = sum(total_donations)) %>% mutate(share = total_donations/overall_total) %>% 
+  
+  arrange(desc(share))
 
 entity_donations
 
-whiters_donations <- member_payments_db %>% filter(entity == "Withers LLP") %>% group_by(name) %>% summarise(total_donations = sum(value))
+
+#retrieving the distinct MPs that Whithers donated to
+whiters_donations <- member_payments_db %>% 
+  
+  filter(entity == "Withers LLP") %>% 
+  
+  group_by(name) %>% 
+  
+  summarise(total_donations = sum(value))
 
 whiters_donations
 ```
@@ -157,14 +175,14 @@ parties_db
 #joining parties with the already joined mebers and payments tables
 party_payment_db <- left_join(member_payments_db,parties_db %>% 
                                 
-                                rename(party_id = "id",party_name = "name"), by = "party_id")
+                                rename(party_id = "id",Party = "name"), by = "party_id")
 
 
 
 #determining number of entities that have contributed to only one party
 party_payment_db %>% 
   
-  group_by(entity,party_name) %>% 
+  group_by(entity,Party) %>% 
   
   summarise(donations = sum(value)) %>% #simply summarising to be able to count the rows created from the grouping
   
@@ -196,14 +214,23 @@ knitr::include_graphics(here::here("images", "total_donations_table.png"), error
 ```{r}
 #see in line XXX for extracting year fro string in payments table
 
-
+#determine party contribution by year
 donations_by_party_year_db <- party_payment_db %>% 
   
   filter(year > 2019) %>% 
   
-  group_by(year,party_name) %>% 
+  group_by(year,Party) %>% 
   
-  summarise(total_year_donations = sum(value))
+  summarise(total_year_donations = sum(value)) %>% 
+  
+  group_by(year) %>% 
+  
+  mutate(sum = sum(total_year_donations),prop = total_year_donations/sum) %>% #calculate yearly proportion by party
+  
+  select(-sum) #drop temporary column needed for prop calculation
+
+#remove scientific notation
+options(scipen = 999)
 
 donations_by_party_year_db
 ```
@@ -213,12 +240,28 @@ donations_by_party_year_db
 
 ```{r echo=FALSE, out.width="80%"}
 knitr::include_graphics(here::here("images", "total_donations_graph.png"), error = FALSE)
-
-members_df <- members_db %>% collect()
-
 ```
 
-This uses the default ggplot colour pallete, as I dont want you to worry about using the [official colours for each party](https://en.wikipedia.org/wiki/Wikipedia:Index_of_United_Kingdom_political_parties_meta_attributes). However, I would like you to ensure the parties are sorted according to total donations and not alphabetically. You may even want to remove some of the smaller parties that hardly register on the graph. Would facetting help you?  
+
+```{r echo=FALSE, out.width="80%"}
+party_donation_df <- donations_by_party_year_db %>% 
+  
+  collect() %>% 
+  
+  filter(total_year_donations > 100000) %>% 
+  
+  mutate(Party = factor(Party, levels = c("Conservative","Labour","Liberal Democrats","Independent","Scottish National Party","Sinn Féin")))
+
+
+
+ggplot(party_donation_df, aes(year,total_year_donations, fill = Party)) +
+  
+  geom_col(position = "dodge") +
+  
+  labs(title = "Conservatives have captured the majority of political donations", subtitle = "Donations to political parties, 2020-2022", x = NULL, y = NULL)
+  
+  scale_y_continuous(labels = comma)
+```
 
 Finally, when you are done working with the databse, make sure you close the connection, or disconnect from the database.
 
