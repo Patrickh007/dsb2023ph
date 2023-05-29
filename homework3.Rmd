@@ -214,7 +214,7 @@ knitr::include_graphics(here::here("images", "total_donations_table.png"), error
 ```{r}
 #see in line XXX for extracting year fro string in payments table
 
-#determine party contribution by year
+#determining party contribution by year
 donations_by_party_year_db <- party_payment_db %>% 
   
   filter(year > 2019) %>% 
@@ -229,7 +229,7 @@ donations_by_party_year_db <- party_payment_db %>%
   
   select(-sum) #drop temporary column needed for prop calculation
 
-#remove scientific notation
+#removing scientific notation
 options(scipen = 999)
 
 donations_by_party_year_db
@@ -244,21 +244,23 @@ knitr::include_graphics(here::here("images", "total_donations_graph.png"), error
 
 
 ```{r echo=FALSE, out.width="80%"}
+#turning database into dataframe
 party_donation_df <- donations_by_party_year_db %>% 
   
   collect() %>% 
   
-  filter(total_year_donations > 100000) %>% 
+  filter(total_year_donations > 100000) %>% #filtering out parties with less than 100,000 in donations
   
+  #adding factor levels according to contribution levels for graph sorting
   mutate(Party = factor(Party, levels = c("Conservative","Labour","Liberal Democrats","Independent","Scottish National Party","Sinn Féin")))
 
 
-
+#plotting column chart
 ggplot(party_donation_df, aes(year,total_year_donations, fill = Party)) +
   
   geom_col(position = "dodge") +
   
-  labs(title = "Conservatives have captured the majority of political donations", subtitle = "Donations to political parties, 2020-2022", x = NULL, y = NULL)
+  labs(title = "Conservatives have captured the majority of political donations", subtitle = "Donations to political parties, 2020-2022", x = NULL, y = NULL) +
   
   scale_y_continuous(labels = comma)
 ```
@@ -358,6 +360,13 @@ base_url <- "https://www.opensecrets.org/political-action-committees-pacs/foreig
 contributions_tables <- base_url %>%
   read_html() 
 
+contributions <- contributions_tables %>% html_element("#DataTables_Table_0") %>% 
+  html_table()
+
+contributions
+
+
+
 ```
 
 - First, make sure you can scrape the data for 2022. Use janitor::clean_names() to rename variables scraped using `snake_case` naming. 
@@ -439,6 +448,11 @@ Identify the CSS selectors in order to extract the relevant information from thi
 
 Can you get all pages of ads, and not just the first one, `https://www.consultancy.uk/jobs/page/1` into a dataframe?
 
+```{r}
+ad_df <- listings_html %>% html_element("#dataTable") %>% html_table()
+
+ad_df
+```
 
 -   Write a function called `scrape_jobs()` that scrapes information from the webpage for consulting positions. This function should
 
@@ -460,6 +474,19 @@ url <- str_c(base_url, page)
 
 -   Write the data frame to a csv file called `all_consulting_jobs.csv` in the `data` folder.
 
+```{r}
+url <- "http://en.wikipedia.org/wiki/Men%27s_100_metres_world_record_progression"
+
+m100 <- url %>%
+read_html()
+
+pre_iaaf <- m100 %>% 
+  html_element("#mw-content-text > div.mw-parser-output > table:nth-child(11)") %>% html_table()
+
+pre_iaaf
+
+
+```
 
 
 # Create a shiny app 
