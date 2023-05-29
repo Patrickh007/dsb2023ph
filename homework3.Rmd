@@ -212,7 +212,7 @@ knitr::include_graphics(here::here("images", "total_donations_table.png"), error
 ```
 
 ```{r}
-#see in line XXX for extracting year fro string in payments table
+#see in line 78 for extracting year from string in payments table
 
 #determining party contribution by year
 donations_by_party_year_db <- party_payment_db %>% 
@@ -432,40 +432,12 @@ The website [https://www.consultancy.uk/jobs/](https://www.consultancy.uk/jobs) 
 library(robotstxt)
 paths_allowed("https://www.consultancy.uk") #is it ok to scrape?
 
-base_url <- "https://www.consultancy.uk/jobs/page/1"
-
-listings_html <- base_url %>%
-  read_html()
+base_url <- "https://www.consultancy.uk/jobs/page/"
 
 ```
-
-Identify the CSS selectors in order to extract the relevant information from this page, namely
-
-1. job 
-1. firm
-1. functional area
-1. type
 
 Can you get all pages of ads, and not just the first one, `https://www.consultancy.uk/jobs/page/1` into a dataframe?
 
-```{r}
-ad_df <- listings_html %>% html_element("#dataTable") %>% html_table()
-
-ad_df
-```
-
--   Write a function called `scrape_jobs()` that scrapes information from the webpage for consulting positions. This function should
-
-    -   have one input: the URL of the webpage and should return a data frame with four columns (variables): job, firm, functional area, and type
-
-    -   Test your function works with other pages too, e.g., https://www.consultancy.uk/jobs/page/2. Does the function seem to do what you expected it to do?
-
-    -   Given that you have to scrape `...jobs/page/1`, `...jobs/page/2`, etc., define your URL so you can join multiple stings into one string, using `str_c()`. For instnace, if `page` is 5, what do you expect the following code to produce?
-    
-```
-base_url <- "https://www.consultancy.uk/jobs/page/1"
-url <- str_c(base_url, page)
-```
 
 -   Construct a vector called `pages` that contains the numbers for each page available
 
@@ -473,6 +445,32 @@ url <- str_c(base_url, page)
 -   Map the `scrape_jobs()` function over `pages` in a way that will result in a data frame called `all_consulting_jobs`.
 
 -   Write the data frame to a csv file called `all_consulting_jobs.csv` in the `data` folder.
+
+```{r}
+#creating a vector with available page numbers, in this case there are 8 pages on the website
+page_vec <- 1:8
+
+
+#writing the scape jobs function with parameter page as input for page numbers, a placeholder for the vector
+scape_jobs <- function(page) {
+  url <- str_c(base_url,page)
+  listing_html <- url %>% read_html()
+  jobs_df <- listing_html %>% html_element("#dataTable") %>% html_table()
+}
+
+
+#running the created function with the vector as input and creating the combined result as a dataframe
+all_consulting_jobs <- map_df(page_vec,scape_jobs)
+
+all_consulting_jobs
+
+
+#writing as a csv file
+file_path <- "data/all_consulting_jobs.csv"
+
+write.csv(all_consulting_jobs, file = file_path, row.names = FALSE)
+```
+
 
 ```{r}
 url <- "http://en.wikipedia.org/wiki/Men%27s_100_metres_world_record_progression"
@@ -500,7 +498,162 @@ knitr::include_graphics(here::here("images", "electricity-shiny.png"), error = F
 
 You can use chatGPT to get the basic layout of Shiny app, but you need to adjust the code it gives you. Ask chatGPT to create the Shiny app using the `gapminder` data and make up similar requests for the inputs/outpus you are thinking of deploying.
 
+```{r}
+#reusing the previously written code from homework 2 to load te required data
+# Download electricity data
+url <- "https://nyc3.digitaloceanspaces.com/owid-public/data/energy/owid-energy-data.csv"
 
+energy <- read_csv(url, show_col_types = FALSE) %>% 
+  filter(year >= 1990) %>% 
+  drop_na(iso_code) %>% 
+  select(1:3,
+         biofuel = biofuel_electricity,
+         coal = coal_electricity,
+         gas = gas_electricity,
+         hydro = hydro_electricity,
+         nuclear = nuclear_electricity,
+         oil = oil_electricity,
+         other_renewable = other_renewable_exc_biofuel_electricity,
+         solar = solar_electricity,
+         wind = wind_electricity, 
+         electricity_demand,
+         electricity_generation,
+         net_elec_imports,	# Net electricity imports, measured in terawatt-hours
+         energy_per_capita,	# Primary energy consumption per capita, measured in kilowatt-hours	Calculated by Our World in Data based on BP Statistical Review of World Energy and EIA International Energy Data
+         energy_per_gdp,	# Energy consumption per unit of GDP. This is measured in kilowatt-hours per 2011 international-$.
+         per_capita_electricity, #	Electricity generation per capita, measured in kilowatt-hours
+  ) 
+
+# Download data for C02 emissions per capita https://data.worldbank.org/indicator/EN.ATM.CO2E.PC
+co2_percap <- wb_data(country = "countries_only", 
+                      indicator = "EN.ATM.CO2E.PC", 
+                      start_date = 1990, 
+                      end_date = 2022,
+                      return_wide=FALSE) %>% 
+  filter(!is.na(value)) %>% 
+  #drop unwanted variables
+  select(-c(unit, obs_status, footnote, last_updated)) %>% 
+  rename(year = date,
+         co2percap = value)
+
+
+# Download data for GDP per capita  https://data.worldbank.org/indicator/NY.GDP.PCAP.PP.KD
+gdp_percap <- wb_data(country = "countries_only", 
+                      indicator = "NY.GDP.PCAP.PP.KD", 
+                      start_date = 1990, 
+                      end_date = 2022,
+                      return_wide=FALSE) %>% 
+  filter(!is.na(value)) %>% 
+  #drop unwanted variables
+  select(-c(unit, obs_status, footnote, last_updated)) %>% 
+  rename(year = date,
+         GDPpercap = value)
+
+#joining data and dropping irrelevant columns
+co2_gdp_data <- left_join(co2_percap,gdp_percap, by = c("year","iso3c")) %>% 
+  
+  select(year,GDPpercap,co2percap,iso3c)
+
+#preparing df for joining
+co2_gdp_iso <- co2_gdp_data %>% 
+  
+  mutate(iso_code = iso3c) #renaming column name for df joining
+
+
+#preparing df for joining
+energy_per_day <- energy %>% 
+  
+  mutate(energy_per_day = energy_per_capita/365) #determining per day consumption
+
+
+
+#joining dfs and dropping irrelevant columns
+shiny_data <- left_join(co2_gdp_iso,energy_per_day, by = c("year","iso_code")) %>% 
+  
+  
+  select(year,energy_per_day,co2percap,GDPpercap,country) 
+
+```
+
+```{r}
+#shiny app with help from ChatGPT
+
+library(shiny)
+library(gapminder)
+
+# Define UI
+ui <- fluidPage(
+  titlePanel("CO2 Emissions, GDP and electricity consumption"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("country", "Country:",
+                  choices = unique(shiny_data$country),
+                  selected = "Germany"),
+      sliderInput("year_range", "Year Range:", 
+                       min = 1990, max = 2020, 
+                       value = c(1990, 2020), step = 1, sep = "")
+    ),
+   mainPanel(
+      plotOutput("plot1"),
+      plotOutput("plot2")
+    )
+  )
+)
+
+# Define server
+server <- function(input, output) {
+  
+  #creating the rendering for the plot and preparing the dataset, depending on inputs
+  output$plot1 <- renderPlot({
+    filtered_data <- shiny_data %>%
+      filter(country == input$country, 
+             year >= input$year_range[1] & year <= input$year_range[2])
+    
+    #plotting as scatterplot with each point getting labeled as the year
+   ggplot(filtered_data, aes(GDPpercap,co2percap, label = year)) +
+     geom_point() +
+     
+     theme_bw() +
+     
+     #avoiding overlap of year labels
+     geom_text_repel() +
+     
+     labs(title = "Are CO2 and GDP per capita related?", x= "GDP per capita",y = "CO2 per capita") +
+     
+     #adding dollar signs to the x axis
+     scale_x_continuous(labels=scales::dollar_format())
+   
+    
+     
+  })
+  
+  #creating the rendering for the plot and preparing the dataset, depending on inputs
+  output$plot2 <- renderPlot({
+    filtered_data <- shiny_data %>%
+      filter(country == input$country, 
+             year >= input$year_range[1] & year <= input$year_range[2])
+    
+    ##plotting as scatterplot with each point getting labeled as the year
+   ggplot(filtered_data, aes(energy_per_day,co2percap, label = year)) +
+     geom_point() +
+     
+     theme_bw() +
+     
+     #avoding year label overlap
+     geom_text_repel() +
+     
+     labs(title = "Are CO2 and energy consumption per capita/day related?", x= "Electricity used (kWh) per capita/day",y = "CO2 per capita") 
+   
+    
+     
+  })
+  
+}
+
+# Run the app
+shinyApp(ui = ui, server = server)
+
+```
 
 # Deliverables
 
