@@ -35,6 +35,7 @@ library(scales)
 library(sf)
 library(readxl)
 library(stringr)
+library(RSelenium)
 ```
 
 # Money in UK politics
@@ -349,19 +350,31 @@ All data come from [OpenSecrets.org](https://www.opensecrets.org), a *"website t
 library(robotstxt)
 paths_allowed("https://www.opensecrets.org")
 
-base_url <- "https://www.opensecrets.org/political-action-committees-pacs/foreign-connected-pacs/2022"
+os_base_url <- "https://www.opensecrets.org/political-action-committees-pacs/foreign-connected-pacs/"
 
-contributions_tables <- base_url %>%
-  read_html() 
+#contributions_tables <- base_url %>%
+ # read_html() 
 
-contributions <- contributions_tables %>% html_element("#DataTables_Table_0") %>% 
-  html_table()
+#contributions <- contributions_tables %>% 
+ # html_elements("#DataTables_Table_0") %>% 
+#  html_table()
 
-contributions
+#contributions <- base_url %>%
+ # read_html() %>%
+ # html_nodes(css="table") %>% # this will isolate all tables on page
+#  html_table() # Parse an html table into a dataframe
+
+#contributions[[1]]
+
+
+
 
 
 
 ```
+
+
+
 
 - First, make sure you can scrape the data for 2022. Use janitor::clean_names() to rename variables scraped using `snake_case` naming. 
 
@@ -386,19 +399,52 @@ parse_currency <- function(x){
 }
 
 # clean country/parent co and contributions 
-contributions <- contributions %>%
-  separate(country_of_origin_parent_company, 
-           into = c("country", "parent"), 
-           sep = "/", 
-           extra = "merge") %>%
-  mutate(
-    total = parse_currency(total),
-    dems = parse_currency(dems),
-    repubs = parse_currency(repubs)
-  )
+#contributions <- contributions[[1]] %>%
+ # separate(country_of_origin_parent_company, 
+  #         into = c("country", "parent"), 
+    #       sep = "/", 
+    #       extra = "merge") %>%
+ # mutate(
+  #  total = parse_currency(total),
+  #  dems = parse_currency(dems),
+ #   repubs = parse_currency(repubs)
+#  )
 ```
 
 
+```{r}
+year <- 2000:2022
+year <- year[(year %% 2 == 0)]
+year
+
+urls <- str_c(os_base_url,year)
+
+urls
+
+scrape_pac <- function(x) {
+  listing_html <- x %>% read_html()
+  pac_df <- listing_html  %>%
+  html_nodes(css="table") %>% # this will isolate all tables on page
+  html_table() # Parse an html table into a dataframe
+  
+  pac_df <- pac_df[[1]] %>%
+  separate("Country of Origin/Parent Company", 
+          into = c("Pountry", "Parent"), 
+          sep = "/", 
+          extra = "merge") %>%
+  mutate(
+    Total = parse_currency(Total),
+    Dems = parse_currency(Dems),
+    Repubs = parse_currency(Repubs),
+    Year = as.numeric(str_sub(x,-4,-1 ))
+  )
+}
+```
+```{r}
+all_years_pac <- map_df(urls,scrape_pac)
+
+all_years_pac
+```
 
 
 -   Write a function called `scrape_pac()` that scrapes information from the Open Secrets webpage for foreign-connected PAC contributions in a given year. This function should
