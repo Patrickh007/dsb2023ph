@@ -89,6 +89,8 @@ ggplot(data = bechdel, aes(
  theme_light() #changing the theme of the graph
 ```
 
+There seems to be a strong positive correlation between IMDB ratings and Metacritic scores, For both pass and fail films.
+
 # Split the data
 
 ```{r}
@@ -107,6 +109,7 @@ bechdel_test <- testing(data_split)
 Check the counts and % (proportions) of the `test` variable in each set.
 
 ```{r}
+#checking count in bechdel_train
 bechdel_train %>% 
   
   group_by(test) %>% 
@@ -114,7 +117,12 @@ bechdel_train %>%
   summarise(count = n()) %>% 
   
   mutate(total = sum(count), prop = count/total)
+```
 
+There are a total of 1114 rows, of which 617 are categorized of failing the bechdel test, a share of 55%
+
+```{r}
+#checking count in bechdel_test
 bechdel_test %>% 
   
   group_by(test) %>% 
@@ -124,12 +132,14 @@ bechdel_test %>%
   mutate(total = sum(count), prop = count/total)
 ```
 
+There are a total of 280 rows, of which 155 are categorized of failing the bechdel test, a share of 55%. This is the same share as in the training dataset, therefore, we can proceed.
+
 ## Feature exploration
 
 ## Any outliers?
 
 ```{r}
-
+#plotting all columns by pass/fail to check for outliers
 bechdel %>% 
   select(test, budget_2013, domgross_2013, intgross_2013, imdb_rating, metascore) %>% 
 
@@ -168,6 +178,7 @@ bechdel %>%
 Write a paragraph discussing the output of the following
 
 ```{r, warning=FALSE}
+#proportion of pass/fail by genre
 bechdel %>% 
   group_by(genre, test) %>%
   summarise(n = n()) %>% #.groups = "drop.last"
@@ -177,6 +188,8 @@ bechdel %>%
 The tables analyses the passing of the Bechdel test based on film genres. Sci-Fi and Documentary films have a 100% failure rate. Action, Mystery and Horror movies are the next categories to have the highest failure rates. Only Musicals and Thrillers have a 100% pass rate.
 
 ```{r, warning=FALSE}
+
+#proportion of pass/fail by age restriction
 bechdel %>% 
   group_by(rated, test) %>%
   summarise(n = n()) %>% 
@@ -288,22 +301,7 @@ bechdel_folds <- vfold_cv(data = bechdel_train,
 bechdel_folds
 ```
 
-The code creates 10 new random data splits (folds) from the training data
-
-
-
-
-
-
-CHECKKKKKKKKKK
-
-
-
-
-
-
-
-
+The code creates 10 new random data splits (folds) from the training data that can be reused as resamples to refit our models and test if they keep the same accuracy.
 
 
 ## `fit_resamples()`
@@ -337,6 +335,8 @@ collect_metrics(tree_fit)
 
 ```
 
+Both models have an accuracy of about 57% after the resampling.
+
 ```{r}
 tree_preds <- tree_mod %>% 
   fit_resamples(
@@ -348,8 +348,12 @@ tree_preds <- tree_mod %>%
 # What does the data for ROC look like?
 tree_preds %>% 
   collect_predictions() %>% 
-  roc_curve(truth = test, .pred_Fail)  
+  roc_curve(truth = test, .pred_Fail)
+```
 
+We have higher sensitivity for specificity levels at thresholds.
+
+```{r}
 # Draw the ROC
 tree_preds %>% 
   collect_predictions() %>% 
@@ -358,31 +362,10 @@ tree_preds %>%
 
 ```
 
-
-
-
-
-CHECK SLIDES
-
-
+The model has a higher true pass rate than true fail rate for prediction at similar levels.
 
 
 # Build a better training set with `recipes`
-
-## Preprocessing options
-
--   Encode categorical predictors
--   Center and scale variables
--   Handle class imbalance
--   Impute missing data
--   Perform dimensionality reduction
--   ... ...
-
-## To build a recipe
-
-1.  Start the `recipe()`
-2.  Define the variables involved
-3.  Describe **prep**rocessing [step-by-step]
 
 ## Collapse Some Categorical Levels
 
@@ -429,62 +412,21 @@ movie_rec %>%
 
 ```
 
-## `step_dummy()`
-
-Converts nominal data into numeric dummy variables
-
-```{r}
-#| results = "hide"
-movie_rec <- recipe(test ~ ., data = bechdel) %>%
-  step_other(genre, threshold = .03) %>% 
-  step_dummy(all_nominal_predictors()) 
-
-movie_rec 
-```
-
-## Let's think about the modelling
-
-What if there were no films with `rated` NC-17 in the training data?
-
--   Will the model have a coefficient for `rated` NC-17?
--   What will happen if the test data includes a film with `rated` NC-17?
-
-## `step_novel()`
-
-Adds a catch-all level to a factor for any new values not encountered in model training, which lets R intelligently predict new levels in the test set.
-
-```{r}
-
-movie_rec <- recipe(test ~ ., data = bechdel) %>%
-  step_other(genre, threshold = .03) %>% 
-  step_novel(all_nominal_predictors) %>% # Use *before* `step_dummy()` so new level is dummified
-  step_dummy(all_nominal_predictors()) 
-
-```
-
-## `step_zv()`
-
-Intelligently handles zero variance variables (variables that contain only a single value)
 
 ```{r}
 movie_rec <- recipe(test ~ ., data = bechdel) %>%
   step_other(genre, threshold = .03) %>% 
-  step_novel(all_nominal(), -all_outcomes()) %>% # Use *before* `step_dummy()` so new level is dummified
-  step_dummy(all_nominal(), -all_outcomes()) %>% 
-  step_zv(all_numeric(), -all_outcomes()) 
   
-```
-
-## `step_normalize()`
-
-Centers then scales numeric variable (mean = 0, sd = 1)
-
-```{r}
-movie_rec <- recipe(test ~ ., data = bechdel) %>%
-  step_other(genre, threshold = .03) %>% 
+  #Adds a catch-all level to a factor for any new values not encountered in model training, which lets R intelligently predict new levels in the test set.
   step_novel(all_nominal(), -all_outcomes()) %>% # Use *before* `step_dummy()` so new level is dummified
+  
+  #Converts nominal data into numeric dummy variables
   step_dummy(all_nominal(), -all_outcomes()) %>% 
+  
+  #Intelligently handles zero variance variables (variables that contain only a single value)
   step_zv(all_numeric(), -all_outcomes())  %>% 
+  
+  #Centers then scales numeric variable (mean = 0, sd = 1)
   step_normalize(all_numeric()) 
 
 ```
@@ -494,7 +436,12 @@ movie_rec <- recipe(test ~ ., data = bechdel) %>%
 Removes highly correlated variables
 
 ```{r}
-movie_rec <- recipe(test ~ metascore + imdb_rating + genre + budget_2013, data = bechdel) %>%
+
+#IMPORTANT! 
+
+#I ran into problems when adapting the code from the other document in order to run model comparisons. The models wouldn't converge and fail. As a result, I limited the number of predictors in the recipe to four and was finally able to fit the models.
+
+movie_rec <- recipe(test ~ metascore + imdb_rating + genre + budget_2013, data = bechdel_train) %>%
   step_other(genre, threshold = .03) %>% 
   step_novel(all_nominal(), -all_outcomes()) %>% # Use *before* `step_dummy()` so new level is dummified
   step_dummy(all_nominal(), -all_outcomes()) %>% 
@@ -595,12 +542,19 @@ knn_wflow <-
 HEADS UP
 
 1.  How many models have you specified?
+
+-  In total, we specified 5 different models.
+
 2.  What's the difference between a model specification and a workflow?
+
+-  The model specification sets up the model before it can be trained. In the workflow we are adding the model and then any recipes that we created as preprocessors before training.
+
 3.  Do you need to add a formula (e.g., `test ~ .`) if you have a recipe?
+
+-  We actually can't add a formula if we add a recipe. The recipe already contains the necessary formula.
 
 # Model Comparison
 
-You now have all your models. Adapt the code from slides `code-from-slides-CA-housing.R`, line 400 onwards to assess which model gives you the best classification.
 
 ```{r}
 log_res <- log_wflow %>% 
@@ -613,18 +567,28 @@ log_res <- log_wflow %>%
 
 # Show average performance over all folds (note that we use log_res):
 log_res %>%  collect_metrics(summarize = TRUE)
+```
 
+Overall, we have an accuracy of 64.2% for this model.
+
+```{r}
 # Show performance for every single fold:
-log_res %>%  collect_metrics(summarize = FALSE) 
+log_res %>%  collect_metrics(summarize = FALSE)
+```
 
+The folds have very differing accuracies.
 
-
+```{r}
 ## `collect_predictions()` and get confusion matrix{.smaller}
 
 log_pred <- log_res %>% collect_predictions()
 
-log_pred %>%  conf_mat(test, .pred_class) #hereee
+log_pred %>%  conf_mat(test, .pred_class)
+```
 
+
+```{r}
+#plotting confusion matrix with labels instead of numbers
 log_pred %>% 
   conf_mat(test, .pred_class) %>% 
   autoplot(type = "mosaic") +
@@ -632,15 +596,19 @@ log_pred %>%
       x = (xmax + xmin) / 2, 
       y = (ymax + ymin) / 2, 
       label = c("TP", "FN", "FP", "TN")))
+```
 
 
+
+```{r}
+#plotting confusion matrix normally
 log_pred %>% 
   conf_mat(test, .pred_class) %>% 
   autoplot(type = "heatmap")
 
-log_pred
 ```
 
+The model has a lower share of false negative predictions than false positive predictions.
 
 ```{r}
 ## ROC Curve
@@ -651,6 +619,7 @@ log_pred %>%
   autoplot()
 ```
 
+All folds seem to have higher specificity levels (better true fail prediction) for sensitivity levels.
 
 ```{r}
 ## Decision Tree results
@@ -667,8 +636,11 @@ tree_res <-
     ) 
 
 tree_res %>%  collect_metrics(summarize = TRUE)
+```
 
+This model has an accuracy of 62%
 
+```{r}
 ## Random Forest
 
 rf_res <-
@@ -683,7 +655,11 @@ rf_res <-
     ) 
 
 rf_res %>%  collect_metrics(summarize = TRUE)
+```
 
+This model has an accuracy of 63.2%
+
+```{r}
 ## Boosted tree - XGBoost
 
 xgb_res <- 
@@ -698,7 +674,11 @@ xgb_res <-
     ) 
 
 xgb_res %>% collect_metrics(summarize = TRUE)
+```
 
+This model has an accuracy of 61%
+
+```{r}
 ## K-nearest neighbour
 
 knn_res <- 
@@ -713,8 +693,11 @@ knn_res <-
     ) 
 
 knn_res %>% collect_metrics(summarize = TRUE)
+```
 
+This model has an accuracy of 58.1%
 
+```{r}
 ## Model Comparison
 
 log_metrics <- 
@@ -775,10 +758,7 @@ model_comp %>%
 
 ```
 
-```{r}
-data_split
-```
-
+In this comparison we can see that logistic regression has the highest accuracy of all trained models at 67%. Therefore, we will move forward with that model for the final fit.
 
 ```{r}
 ## `last_fit()` on test set
@@ -800,6 +780,7 @@ log_res %>% collect_metrics(summarize = TRUE)
 
 ```
 
+Both models have a similar accuracy, so I'm moving forward with validating my training steps.
 
 ```{r, error=FALSE, warning=FALSE}
 ## Variable importance using `{vip}` package
@@ -832,6 +813,8 @@ last_fit_log %>%
 
 ```
 
+The matrix predicts more True/False correctly than incorrectly. The model has a higher accuracy predicting the failure of the bechdel test rather than the passing.
+
 # Deliverables
 
 There is a lot of explanatory text, comments, etc. You do not need these, so delete them and produce a stand-alone document that you could share with someone. Knit the edited and completed R Markdown (Rmd) file as a Word or HTML document (use the "Knit" button at the top of the script editor window) and upload it to Canvas. You must be commiting and pushing your changes to your own Github repo as you go along.
@@ -842,17 +825,7 @@ There is a lot of explanatory text, comments, etc. You do not need these, so del
 -   Approximately how much time did you spend on this problem set: 4h
 -   What, if anything, gave you the most trouble: Model Comparison, it just wouldn't run and now only works because I reduced the number of predictors for the formula
 
-**Please seek out help when you need it,** and remember the [15-minute rule](https://dsb2023.netlify.app/syllabus/#the-15-minute-rule){target="_blank"}. You know enough R (and have enough examples of code from class and your readings) to be able to do this. If you get stuck, ask for help from others, post a question on Slack-- and remember that I am here to help too!
-
 > As a true test to yourself, do you understand the code you submitted and are you able to explain it to someone else?
 
 YES
 
-
-# Rubric
-
-13/13: Problem set is 100% completed. Every question was attempted and answered, and most answers are correct. Code is well-documented (both self-documented and with additional comments as necessary). Used tidyverse, instead of base R. Graphs and tables are properly labelled. Analysis is clear and easy to follow, either because graphs are labeled clearly or you've written additional text to describe how you interpret the output. Multiple Github commits. Work is exceptional. I will not assign these often.
-
-8/13: Problem set is 60--80% complete and most answers are correct. This is the expected level of performance. Solid effort. Hits all the elements. No clear mistakes. Easy to follow (both the code and the output). A few Github commits.
-
-5/13: Problem set is less than 60% complete and/or most answers are incorrect. This indicates that you need to improve next time. I will hopefully not assign these often. Displays minimal effort. Doesn't complete all components. Code is poorly written and not documented. Uses the same type of plot for each graph, or doesn't use plots appropriate for the variables being analyzed. No Github commits.
