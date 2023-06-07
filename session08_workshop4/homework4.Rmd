@@ -173,6 +173,8 @@ bechdel %>%
   theme_bw()
 ```
 
+First and foremost, for all variables, when compared by whether the films have passed or failed the Bechdel test, films, who failed the test tend to have on average higher values, as evidenced by the box plots in the first row. In terms of correlations, the strongest overall correlation is between international and domestic gross, which is expected because the film would normally also do well internationally if it does well nationally. The second strongest overall correlation is between metascores and IMDB scores, which is also expected because they are both critic scores. If we look at differences in correlations when taking pass/fail into account, we see the biggest difference in the correlation between metascores and domestic gross, where bechdel-failed-films have a correlation of 0.216 and passed films a correlation of 0.107.
+
 ## Categorical variables
 
 Write a paragraph discussing the output of the following
@@ -456,7 +458,7 @@ movie_rec
 
 # Define different models to fit
 
-```{r}
+```{r, warning=FALSE}
 ## Model Building
 
 # 1. Pick a `model type`
@@ -815,9 +817,7 @@ last_fit_log %>%
 
 The matrix predicts more True/False correctly than incorrectly. The model has a higher accuracy predicting the failure of the bechdel test rather than the passing.
 
-# Deliverables
 
-There is a lot of explanatory text, comments, etc. You do not need these, so delete them and produce a stand-alone document that you could share with someone. Knit the edited and completed R Markdown (Rmd) file as a Word or HTML document (use the "Knit" button at the top of the script editor window) and upload it to Canvas. You must be commiting and pushing your changes to your own Github repo as you go along.
 
 # Details
 
