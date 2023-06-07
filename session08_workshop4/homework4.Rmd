@@ -51,6 +51,7 @@ bechdel <- read_csv(here::here("data", "bechdel.csv")) %>%
   mutate(test = factor(test)) 
 glimpse(bechdel)
 
+jnefj
 
 ```
 
