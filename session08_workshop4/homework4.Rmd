@@ -494,7 +494,7 @@ movie_rec <- recipe(test ~ ., data = bechdel) %>%
 Removes highly correlated variables
 
 ```{r}
-movie_rec <- recipe(test ~ metascore + imdb_rating + genre, data = bechdel) %>%
+movie_rec <- recipe(test ~ metascore + imdb_rating + genre + budget_2013, data = bechdel) %>%
   step_other(genre, threshold = .03) %>% 
   step_novel(all_nominal(), -all_outcomes()) %>% # Use *before* `step_dummy()` so new level is dummified
   step_dummy(all_nominal(), -all_outcomes()) %>% 
@@ -606,9 +606,9 @@ You now have all your models. Adapt the code from slides `code-from-slides-CA-ho
 log_res <- log_wflow %>% 
   fit_resamples(
     resamples = bechdel_folds, 
-    #metrics = metric_set(
-     # recall, precision, f_meas, accuracy,
-     # kap, roc_auc, sens, spec),
+    metrics = metric_set(
+     recall, precision, f_meas, accuracy,
+     kap, roc_auc, sens, spec),
     control = control_resamples(save_pred = TRUE)) 
 
 # Show average performance over all folds (note that we use log_res):
@@ -773,14 +773,20 @@ model_comp %>%
   theme(legend.position = "none")+
   labs(y = NULL)
 
-## `last_fit()` on test set
+```
 
-# - `last_fit()`  fits a model to the whole training data and evaluates it on the test set. 
-# - provide the workflow object of the best model as well as the data split object (not the training data).
+```{r}
+data_split
 ```
 
 
 ```{r}
+## `last_fit()` on test set
+
+# - `last_fit()`  fits a model to the whole training data and evaluates it on the test set. 
+# - provide the workflow object of the best model as well as the data split object (not the training data).
+
+
 last_fit_log <- last_fit(log_wflow, 
                         split = data_split,
                         metrics = metric_set(
@@ -792,25 +798,24 @@ last_fit_log %>% collect_metrics(summarize = TRUE)
 #Compare to training
 log_res %>% collect_metrics(summarize = TRUE)
 
-last_fit_log
 ```
 
 
-```{r}
+```{r, error=FALSE, warning=FALSE}
 ## Variable importance using `{vip}` package
 
 library(vip)
 
-#last_fit_xgb %>% 
- # pluck(".workflow", 1) %>%   
- 
- # extract_fit_parsnip() %>% 
-  
-   #pull_workflow_fit() %>% 
-  #vip(num_features = 10) +
-  #theme_light()
+last_fit_log %>% 
+  pluck(".workflow", 1) %>%   
+  pull_workflow_fit() %>% 
+  vip(num_features = 10) +
+  theme_light()
+```
 
+As we can see, IMDB rating is the most important variable to determine the failure of the bechdel test for a film.
 
+```{r, error==FALSE}
 ## Final Confusion Matrix
 
 last_fit_log %>%
@@ -825,13 +830,6 @@ last_fit_log %>%
   roc_curve(test, .pred_Pass) %>% 
   autoplot()
 
-
-
-
-
-
-
-
 ```
 
 # Deliverables
@@ -841,8 +839,8 @@ There is a lot of explanatory text, comments, etc. You do not need these, so del
 # Details
 
 -   Who did you collaborate with: Claudia Cerezo
--   Approximately how much time did you spend on this problem set: 2h
--   What, if anything, gave you the most trouble: Descriptive Statistics
+-   Approximately how much time did you spend on this problem set: 4h
+-   What, if anything, gave you the most trouble: Model Comparison, it just wouldn't run and now only works because I reduced the number of predictors for the formula
 
 **Please seek out help when you need it,** and remember the [15-minute rule](https://dsb2023.netlify.app/syllabus/#the-15-minute-rule){target="_blank"}. You know enough R (and have enough examples of code from class and your readings) to be able to do this. If you get stuck, ask for help from others, post a question on Slack-- and remember that I am here to help too!
 
