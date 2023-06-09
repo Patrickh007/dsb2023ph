@@ -30,7 +30,7 @@ library(rpart.plot)
 library(here)
 library(scales)
 library(vip)
-
+kjj
 ```
 
 # The Bechdel Test
@@ -158,7 +158,6 @@ bechdel %>%
 ```
 
 In all selected categories the variables are on average higher if the film fails the bechdel test. There are a few outliers, for example in film budget one of the films that failed the Bechdel test, had a budget over 40m. In IMDB ratings, a few films that failed the Bechdel test had very low ratings and should be classified as outliers. There are also films in both test categories that grossed an unusual amount, both domesticlly and internationally.
-
 
 ## Scatterplot - Correlation Matrix
 
@@ -305,7 +304,6 @@ bechdel_folds
 
 The code creates 10 new random data splits (folds) from the training data that can be reused as resamples to refit our models and test if they keep the same accuracy.
 
-
 ## `fit_resamples()`
 
 Trains and tests a resampled model.
@@ -366,7 +364,6 @@ tree_preds %>%
 
 The model has a higher true pass rate than true fail rate for prediction at similar levels.
 
-
 # Build a better training set with `recipes`
 
 ## Collapse Some Categorical Levels
@@ -413,7 +410,6 @@ movie_rec %>%
   count(genre, sort = TRUE)
 
 ```
-
 
 ```{r}
 movie_rec <- recipe(test ~ ., data = bechdel) %>%
@@ -545,18 +541,17 @@ HEADS UP
 
 1.  How many models have you specified?
 
--  In total, we specified 5 different models.
+-   In total, we specified 5 different models.
 
 2.  What's the difference between a model specification and a workflow?
 
--  The model specification sets up the model before it can be trained. In the workflow we are adding the model and then any recipes that we created as preprocessors before training.
+-   The model specification sets up the model before it can be trained. In the workflow we are adding the model and then any recipes that we created as preprocessors before training.
 
 3.  Do you need to add a formula (e.g., `test ~ .`) if you have a recipe?
 
--  We actually can't add a formula if we add a recipe. The recipe already contains the necessary formula.
+-   We actually can't add a formula if we add a recipe. The recipe already contains the necessary formula.
 
 # Model Comparison
-
 
 ```{r}
 log_res <- log_wflow %>% 
@@ -588,7 +583,6 @@ log_pred <- log_res %>% collect_predictions()
 log_pred %>%  conf_mat(test, .pred_class)
 ```
 
-
 ```{r}
 #plotting confusion matrix with labels instead of numbers
 log_pred %>% 
@@ -599,8 +593,6 @@ log_pred %>%
       y = (ymax + ymin) / 2, 
       label = c("TP", "FN", "FP", "TN")))
 ```
-
-
 
 ```{r}
 #plotting confusion matrix normally
@@ -817,8 +809,6 @@ last_fit_log %>%
 
 The matrix predicts more True/False correctly than incorrectly. The model has a higher accuracy predicting the failure of the bechdel test rather than the passing.
 
-
-
 # Details
 
 -   Who did you collaborate with: Claudia Cerezo
@@ -828,4 +818,3 @@ The matrix predicts more True/False correctly than incorrectly. The model has a 
 > As a true test to yourself, do you understand the code you submitted and are you able to explain it to someone else?
 
 YES
-
