@@ -7,9 +7,9 @@ disqusShortname: ''
 params:
   banner:
     buttonText: Get Started
-    subtitle: |-
-      This portfolio contains parts of y work, as well as my social media links, should you have any additional questions.
-    title: Hi, my name is Patrick, I'm a student at LBS taking the Data Science for Business course with Professor Christodoulou. As part of this course, we're showcasing all the wonderful work we've worked on on our personal websites for you to look at and appreciate. 
+    subtitle: 
+      This portfolio contains parts of my work, as well as my social media links, should you have any additional questions.
+    title: Hi, my name is Patrick, Im a student at LBS taking the Data Science for Business course with Professor Christodoulou. As part of this course, we are showcasing all the wonderful work we have worked on on our personal websites for you to look at and appreciate. 
   blog: {}
   contact:
     address:
