@@ -48,7 +48,7 @@ params:
 #        label: Facebook
 #        url: https://www.facebook.com
       - icon: fa-instagram
-        label: Patrick's Instagram
+        label: Patrick's Insta
         url: https://www.instagram.com/patrickhofbauer_/?hl=en
       - icon: fa-github
         label: Patrick's GitHub
